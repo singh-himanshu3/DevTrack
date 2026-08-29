@@ -1,7 +1,8 @@
 import type { Issue } from "../types/issues";
 
+const ISSUES_API_URL = "http://localhost:3000/api/issues";
 export async function getIssues() : Promise<Issue[]> {
-    const response = await fetch("http://localhost:3000/api/issues");
+    const response = await fetch(ISSUES_API_URL);
     if(!response.ok) {
         throw new Error("Failed to fetch issues");
     }
@@ -10,7 +11,7 @@ export async function getIssues() : Promise<Issue[]> {
 }
 
 export async function createIssue(title : string) : Promise<Issue> {
-    const response = await fetch("http://localhost:3000/api/issues", {
+    const response = await fetch(ISSUES_API_URL, {
         method : "POST",
         headers : {
             "Content-Type" : "application/json"
@@ -22,4 +23,29 @@ export async function createIssue(title : string) : Promise<Issue> {
     }
     const data = await response.json() ;
     return data as Issue ;
+}
+
+export async function updateIssueTitle(id : number, title : string): Promise<Issue>{
+        const response = await fetch(`${ISSUES_API_URL}/${id}`, {
+            method : "PATCH",
+            headers : {
+                "Content-Type" : "application/json"
+            },
+            body : JSON.stringify({title})
+        })
+        if(!response.ok){
+            throw new Error("Failed to update issue") ;
+        }
+        const data = await response.json() ;
+        return data as Issue ;
+}
+
+export async function deleteIssue(id : number): Promise<void>{
+        const response = await fetch(`${ISSUES_API_URL}/${id}`, {
+            method : "DELETE",
+        })
+        if(!response.ok){ 
+            throw new Error("Failed to delete issue") ;
+        }
+        
 }
