@@ -2,7 +2,9 @@ import type { Issue } from "../types/issues";
 
 const ISSUES_API_URL = "http://localhost:3000/api/issues";
 export async function getIssues() : Promise<Issue[]> {
-    const response = await fetch(ISSUES_API_URL);
+    const response = await fetch(ISSUES_API_URL,{
+        credentials: "include"
+    });
     if(!response.ok) {
         throw new Error("Failed to fetch issues");
     }
@@ -16,6 +18,7 @@ export async function createIssue(title : string) : Promise<Issue> {
         headers : {
             "Content-Type" : "application/json"
         },
+        credentials: "include",
         body : JSON.stringify({title})
     })
     if(!response.ok){
@@ -31,6 +34,7 @@ export async function updateIssueTitle(id : number, title : string): Promise<Iss
             headers : {
                 "Content-Type" : "application/json"
             },
+            credentials: "include",
             body : JSON.stringify({title})
         })
         if(!response.ok){
@@ -43,6 +47,7 @@ export async function updateIssueTitle(id : number, title : string): Promise<Iss
 export async function deleteIssue(id : number): Promise<void>{
         const response = await fetch(`${ISSUES_API_URL}/${id}`, {
             method : "DELETE",
+            credentials: "include"
         })
         if(!response.ok){ 
             throw new Error("Failed to delete issue") ;

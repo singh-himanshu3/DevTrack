@@ -3,6 +3,7 @@ import issuesRouter from "./routes/issues.routes.js" ;
 import cors from "cors" ;
 import authRouter from "./routes/auth.routes.js" ;
 import cookieParser from "cookie-parser";
+import { requireAuth } from "./middleware/auth.middleware.js";
 
 const app = express() ;
 
@@ -14,6 +15,6 @@ app.use(
     }),
 ) ;
 app.use(cookieParser()) ;
-app.use("/api/issues", issuesRouter) ;
+app.use("/api/issues", requireAuth, issuesRouter);
 app.use("/api/auth", authRouter) ;
 export default app ;
