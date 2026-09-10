@@ -4,6 +4,7 @@ import cors from "cors" ;
 import authRouter from "./routes/auth.routes.js" ;
 import cookieParser from "cookie-parser";
 import { requireAuth } from "./middleware/auth.middleware.js";
+import usersRouter from "./routes/users.routes.js";
 
 const app = express() ;
 
@@ -16,5 +17,6 @@ app.use(
 ) ;
 app.use(cookieParser()) ;
 app.use("/api/issues", requireAuth, issuesRouter);
+app.use("/api/users", requireAuth, usersRouter);
 app.use("/api/auth", authRouter) ;
 export default app ;

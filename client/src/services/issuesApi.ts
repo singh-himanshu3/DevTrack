@@ -12,6 +12,19 @@ export async function getIssues() : Promise<Issue[]> {
     return data as Issue[] ;
 }
 
+export async function getMyIssues(): Promise<Issue[]> {
+    const response = await fetch(`${ISSUES_API_URL}/mine`, {
+        credentials: "include",
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch your issues");
+    }
+
+    const data = await response.json();
+    return data as Issue[];
+}
+
 export async function createIssue(title : string) : Promise<Issue> {
     const response = await fetch(ISSUES_API_URL, {
         method : "POST",
@@ -53,4 +66,25 @@ export async function deleteIssue(id : number): Promise<void>{
             throw new Error("Failed to delete issue") ;
         }
         
+}
+
+export async function updateIssueAssignee(
+    id: number,
+    assigneeId: number | null,
+): Promise<Issue> {
+    const response = await fetch(`${ISSUES_API_URL}/${id}/assignee`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ assigneeId }),
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to update assignee");
+    }
+
+    const data = await response.json();
+    return data as Issue;
 }

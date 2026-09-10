@@ -1,14 +1,19 @@
 import { useEffect, useState, type SubmitEvent} from "react";
 import '../App.css';
 import type { Issue } from '../types/issues'
-import { getIssues, createIssue, updateIssueTitle, deleteIssue } from '../services/issuesApi';
-import { logout } from "../services/authApi" ;
-import { useAuth } from "../context/AuthContext" ;
+import {
+  createIssue,
+  deleteIssue,
+  getIssues,
+  updateIssueAssignee,
+  updateIssueTitle,
+} from '../services/issuesApi';
+import { getUsers } from "../services/usersApi";
+import type { UserSummary } from "../types/users";
 
 function IssuesPage() {
-  const { user, setUser } = useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [issues, setIssues] = useState<Issue[]>([]) ;
+  const [users, setUsers] = useState<UserSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true) ;
   const [error, setError] = useState<string | null >(null) ;
   const [title, setTitle] = useState("");
@@ -17,6 +22,7 @@ function IssuesPage() {
   const [editingIssueId, setEditingIssueId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [assigningIssueId, setAssigningIssueId] = useState<number | null>(null);
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault() ;
@@ -110,28 +116,37 @@ function IssuesPage() {
       setIsUpdating(false);
     }
   }
-  async function handleLogout() {
+  async function handleAssigneeChange(issueId: number, value: string) {
+    const assigneeId = value === "" ? null : Number(value);
     setError(null);
-    setIsLoggingOut(true);
+    setAssigningIssueId(issueId);
 
     try {
-      await logout();
-      setUser(null);
+      const updatedIssue = await updateIssueAssignee(issueId, assigneeId);
+      setIssues((currentIssues) =>
+        currentIssues.map((issue) =>
+          issue.id === updatedIssue.id ? updatedIssue : issue,
+        ),
+      );
     } catch (caughtError) {
       if (caughtError instanceof Error) {
         setError(caughtError.message);
       } else {
-        setError("Failed to log out");
+        setError("Failed to update assignee");
       }
     } finally {
-      setIsLoggingOut(false);
+      setAssigningIssueId(null);
     }
   }
   useEffect(() => {
-    async function fetchIssues(){
+    async function fetchPageData(){
       try {
-        const data = await getIssues() ;
-        setIssues(data) ;
+        const [issueData, userData] = await Promise.all([
+          getIssues(),
+          getUsers(),
+        ]);
+        setIssues(issueData) ;
+        setUsers(userData);
       } catch (caughtError) {
         if(caughtError instanceof Error) {
           setError(caughtError.message) ;
@@ -142,22 +157,13 @@ function IssuesPage() {
         setIsLoading(false) ;
       }
     }
-    void fetchIssues() ;
+    void fetchPageData() ;
   }
   , [])
   if(isLoading) return <div>Loading...</div> ;
   return (
     <>
-      <h1>DevTrack</h1>
-      <p>Signed in as {user?.name}</p>
-
-      <button
-        type="button"
-        onClick={() => void handleLogout()}
-        disabled={isLoggingOut}
-      >
-        {isLoggingOut ? "Logging out..." : "Log out"}
-      </button>
+      <h2>All Issues</h2>
       <form onSubmit={handleSubmit}>
         <label htmlFor="issue-title">Issue title</label>
 
@@ -216,6 +222,22 @@ function IssuesPage() {
                 </>
               )}
             <p>Created At: {new Date(issue.createdAt).toLocaleString()}</p>
+            <label htmlFor={`issue-${issue.id}-assignee`}>Assignee</label>
+            <select
+              id={`issue-${issue.id}-assignee`}
+              value={issue.assigneeId ?? ""}
+              onChange={(event) =>
+                void handleAssigneeChange(issue.id, event.target.value)
+              }
+              disabled={assigningIssueId !== null}
+            >
+              <option value="">Unassigned</option>
+              {users.map((availableUser) => (
+                <option key={availableUser.id} value={availableUser.id}>
+                  {availableUser.name} ({availableUser.email})
+                </option>
+              ))}
+            </select>
             <button
               type="button"
               onClick={() => void handleDelete(issue.id)}

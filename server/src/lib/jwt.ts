@@ -24,7 +24,6 @@ export function verifyAuthToken(token: string): AuthTokenPayload {
     const decoded = jwt.verify(token, jwtSecret, {
         algorithms: ["HS256"],
     }) ;
-    console.log("Decoded token:", decoded);
     if (typeof decoded === "string" || typeof decoded.userId !== "number"){
         throw new Error("Invalid authentication token");
     }
