@@ -11,19 +11,36 @@ export async function registerUser(name : string, email: string, password: strin
     }
     
     const passwordHash = await bcrypt.hash(password, 12) ;
-    const user = await prisma.user.create({
-        data: {
-            name : name.trim() ,
-            email : normalizedEmail,
-            passwordHash,
-        },
-        select:{
-            id: true,
-            name: true,
-            email: true,
-            createdAt: true,
-            updatedAt: true,
-        }
+    const trimmedName = name.trim();
+    const user = await prisma.$transaction(async (transaction) => {
+        const createdUser = await transaction.user.create({
+            data: {
+                name: trimmedName,
+                email: normalizedEmail,
+                passwordHash,
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+
+        await transaction.workspace.create({
+            data: {
+                name: `${trimmedName}'s Workspace`,
+                memberships: {
+                    create: {
+                        userId: createdUser.id,
+                        role: "OWNER",
+                    },
+                },
+            },
+        });
+
+        return createdUser;
     });
     return user;
 }

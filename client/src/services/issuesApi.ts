@@ -1,8 +1,12 @@
 import type { Issue } from "../types/issues";
 
 const ISSUES_API_URL = "http://localhost:3000/api/issues";
-export async function getIssues() : Promise<Issue[]> {
-    const response = await fetch(ISSUES_API_URL,{
+function getWorkspaceIssueUrl(workspaceId: number, path = "") {
+    return `${ISSUES_API_URL}${path}?workspaceId=${workspaceId}`;
+}
+
+export async function getIssues(workspaceId: number) : Promise<Issue[]> {
+    const response = await fetch(getWorkspaceIssueUrl(workspaceId),{
         credentials: "include"
     });
     if(!response.ok) {
@@ -12,8 +16,8 @@ export async function getIssues() : Promise<Issue[]> {
     return data as Issue[] ;
 }
 
-export async function getMyIssues(): Promise<Issue[]> {
-    const response = await fetch(`${ISSUES_API_URL}/mine`, {
+export async function getMyIssues(workspaceId: number): Promise<Issue[]> {
+    const response = await fetch(getWorkspaceIssueUrl(workspaceId, "/mine"), {
         credentials: "include",
     });
 
@@ -25,8 +29,8 @@ export async function getMyIssues(): Promise<Issue[]> {
     return data as Issue[];
 }
 
-export async function createIssue(title : string) : Promise<Issue> {
-    const response = await fetch(ISSUES_API_URL, {
+export async function createIssue(title : string, workspaceId: number) : Promise<Issue> {
+    const response = await fetch(getWorkspaceIssueUrl(workspaceId), {
         method : "POST",
         headers : {
             "Content-Type" : "application/json"
@@ -41,8 +45,12 @@ export async function createIssue(title : string) : Promise<Issue> {
     return data as Issue ;
 }
 
-export async function updateIssueTitle(id : number, title : string): Promise<Issue>{
-        const response = await fetch(`${ISSUES_API_URL}/${id}`, {
+export async function updateIssueTitle(
+    id: number,
+    title: string,
+    workspaceId: number,
+): Promise<Issue>{
+        const response = await fetch(getWorkspaceIssueUrl(workspaceId, `/${id}`), {
             method : "PATCH",
             headers : {
                 "Content-Type" : "application/json"
@@ -57,8 +65,8 @@ export async function updateIssueTitle(id : number, title : string): Promise<Iss
         return data as Issue ;
 }
 
-export async function deleteIssue(id : number): Promise<void>{
-        const response = await fetch(`${ISSUES_API_URL}/${id}`, {
+export async function deleteIssue(id : number, workspaceId: number): Promise<void>{
+        const response = await fetch(getWorkspaceIssueUrl(workspaceId, `/${id}`), {
             method : "DELETE",
             credentials: "include"
         })
@@ -71,15 +79,19 @@ export async function deleteIssue(id : number): Promise<void>{
 export async function updateIssueAssignee(
     id: number,
     assigneeId: number | null,
+    workspaceId: number,
 ): Promise<Issue> {
-    const response = await fetch(`${ISSUES_API_URL}/${id}/assignee`, {
+    const response = await fetch(
+        getWorkspaceIssueUrl(workspaceId, `/${id}/assignee`),
+        {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
         },
         credentials: "include",
         body: JSON.stringify({ assigneeId }),
-    });
+        },
+    );
 
     if (!response.ok) {
         throw new Error("Failed to update assignee");

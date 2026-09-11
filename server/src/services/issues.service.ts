@@ -4,6 +4,7 @@ const issueSelect = {
     id: true,
     title: true,
     createdAt: true,
+    workspaceId: true,
     assigneeId: true,
     assignee: {
         select: {
@@ -14,37 +15,38 @@ const issueSelect = {
     },
 } as const;
 
-export async function createIssue(title: string) {
+export async function createIssue(title: string, workspaceId: number) {
     return prisma.issue.create({
-        data: { title },
+        data: { title, workspaceId },
         select: issueSelect,
     });
 }
 
-export async function getIssues() {
+export async function getIssues(workspaceId: number) {
     return prisma.issue.findMany({
+        where: { workspaceId },
         orderBy: { createdAt: "desc" },
         select: issueSelect,
     });
 }
 
-export async function getMyIssues(userId: number) {
+export async function getMyIssues(userId: number, workspaceId: number) {
     return prisma.issue.findMany({
-        where: { assigneeId: userId },
+        where: { assigneeId: userId, workspaceId },
         orderBy: { createdAt: "desc" },
         select: issueSelect,
     });
 }
 
-export async function getIssueById(id: number) {
-    return prisma.issue.findUnique({
-        where: { id },
+export async function getIssueById(id: number, workspaceId: number) {
+    return prisma.issue.findFirst({
+        where: { id, workspaceId },
         select: issueSelect,
     });
 }
 
-export async function updateIssueTitle(id: number, title: string) {
-    const existingIssue = await getIssueById(id);
+export async function updateIssueTitle(id: number, title: string, workspaceId: number) {
+    const existingIssue = await getIssueById(id, workspaceId);
     if (existingIssue === null) {
         return null;
     }
@@ -56,9 +58,13 @@ export async function updateIssueTitle(id: number, title: string) {
     });
 }
 
-export async function updateIssueAssignee(id: number, assigneeId: number | null) {
-    const existingIssue = await prisma.issue.findUnique({
-        where: { id },
+export async function updateIssueAssignee(
+    id: number,
+    assigneeId: number | null,
+    workspaceId: number,
+) {
+    const existingIssue = await prisma.issue.findFirst({
+        where: { id, workspaceId },
         select: { id: true },
     });
 
@@ -67,13 +73,18 @@ export async function updateIssueAssignee(id: number, assigneeId: number | null)
     }
 
     if (assigneeId !== null) {
-        const existingUser = await prisma.user.findUnique({
-            where: { id: assigneeId },
-            select: { id: true },
+        const existingMember = await prisma.workspaceMember.findUnique({
+            where: {
+                workspaceId_userId: {
+                    workspaceId,
+                    userId: assigneeId,
+                },
+            },
+            select: { userId: true },
         });
 
-        if (existingUser === null) {
-            return { kind: "user_not_found" } as const;
+        if (existingMember === null) {
+            return { kind: "assignee_not_member" } as const;
         }
     }
 
@@ -86,8 +97,8 @@ export async function updateIssueAssignee(id: number, assigneeId: number | null)
     return { kind: "updated", issue } as const;
 }
 
-export async function deleteIssue(id: number) {
-    const existingIssue = await getIssueById(id);
+export async function deleteIssue(id: number, workspaceId: number) {
+    const existingIssue = await getIssueById(id, workspaceId);
     if (existingIssue === null) {
         return null;
     }

@@ -13,21 +13,52 @@ datasource db {
 }
 
 model Issue {
-  id         Int      @id @default(autoincrement())
-  title      String
-  createdAt  DateTime @default(now())
-  assigneeId Int?
-  assignee   User?    @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  id          Int       @id @default(autoincrement())
+  title       String
+  createdAt   DateTime  @default(now())
+  workspaceId Int
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assigneeId  Int?
+  assignee    User?     @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
 
   @@index([assigneeId])
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, assigneeId, createdAt])
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             Int               @id @default(autoincrement())
+  name           String
+  email          String            @unique
+  passwordHash   String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
   assignedIssues Issue[]
+  memberships    WorkspaceMember[]
+}
+
+model Workspace {
+  id          Int               @id @default(autoincrement())
+  name        String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  memberships WorkspaceMember[]
+  issues      Issue[]
+}
+
+model WorkspaceMember {
+  workspaceId Int
+  userId      Int
+  role        WorkspaceRole @default(MEMBER)
+  joinedAt    DateTime      @default(now())
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, userId])
+  @@index([userId])
+}
+
+enum WorkspaceRole {
+  OWNER
+  MEMBER
 }

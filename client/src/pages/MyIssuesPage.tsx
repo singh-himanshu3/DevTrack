@@ -1,33 +1,51 @@
 import { useEffect, useState } from "react";
+import { useWorkspace } from "../context/WorkspaceContext";
 import { getMyIssues } from "../services/issuesApi";
 import type { Issue } from "../types/issues";
 
 function MyIssuesPage() {
+  const { currentWorkspace } = useWorkspace();
+  const currentWorkspaceId = currentWorkspace?.id;
   const [issues, setIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (currentWorkspaceId === undefined) return;
+    const workspaceId = currentWorkspaceId;
+
+    let isCancelled = false;
+
     async function fetchMyIssues() {
+      setIsLoading(true);
+      setError(null);
+
       try {
-        setIssues(await getMyIssues());
+        const issueData = await getMyIssues(workspaceId);
+        if (!isCancelled) setIssues(issueData);
       } catch (caughtError) {
-        setError(
-          caughtError instanceof Error
-            ? caughtError.message
-            : "Failed to fetch your issues",
-        );
+        if (!isCancelled) {
+          setError(
+            caughtError instanceof Error
+              ? caughtError.message
+              : "Failed to fetch your issues",
+          );
+        }
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) setIsLoading(false);
       }
     }
 
     void fetchMyIssues();
-  }, []);
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentWorkspaceId]);
 
-  if (isLoading) {
-    return <p>Loading your issues...</p>;
+  if (currentWorkspace === null) {
+    return <p>Create or select a workspace to view your issues.</p>;
   }
+  if (isLoading) return <p>Loading your issues...</p>;
 
   return (
     <section>

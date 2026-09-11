@@ -9,19 +9,34 @@ import {
     updateIssueTitle,
 } from "../services/issues.service.js";
 
+function requireWorkspaceId(req: Request, res: Response): number | null {
+    if (req.workspaceId === undefined) {
+        res.status(400).json({ message: "A workspace is required" });
+        return null;
+    }
+
+    return req.workspaceId;
+}
+
 export async function createIssueController(req: Request, res: Response){
+    const workspaceId = requireWorkspaceId(req, res);
+    if (workspaceId === null) return;
+
     const {title} = req.body;
     if(typeof title !== "string" || title.trim() === ""){
         res.status(400).json({ message: "Title is required" });
         return;
     }
 
-    const issue = await createIssue(title.trim()) ;
+    const issue = await createIssue(title.trim(), workspaceId) ;
     res.status(201).json(issue);
 }
 
-export async function getIssuesController(_req: Request, res: Response){
-    const issues = await getIssues();
+export async function getIssuesController(req: Request, res: Response){
+    const workspaceId = requireWorkspaceId(req, res);
+    if (workspaceId === null) return;
+
+    const issues = await getIssues(workspaceId);
     res.status(200).json(issues);
 }
 
@@ -31,11 +46,17 @@ export async function getMyIssuesController(req: Request, res: Response) {
         return;
     }
 
-    const issues = await getMyIssues(req.userId);
+    const workspaceId = requireWorkspaceId(req, res);
+    if (workspaceId === null) return;
+
+    const issues = await getMyIssues(req.userId, workspaceId);
     res.status(200).json(issues);
 }
 
 export async function getIssueByIdController(req: Request, res: Response){
+    const workspaceId = requireWorkspaceId(req, res);
+    if (workspaceId === null) return;
+
     const id = Number(req.params.id) ;
 
     if(!Number.isInteger(id) || id <= 0){
@@ -43,7 +64,7 @@ export async function getIssueByIdController(req: Request, res: Response){
         return;
     }
 
-    const issue = await getIssueById(id) ;
+    const issue = await getIssueById(id, workspaceId) ;
     if(issue === null){
         res.status(404).json({ message : "Issue not found"});
         return ;
@@ -52,6 +73,9 @@ export async function getIssueByIdController(req: Request, res: Response){
 }
 
 export async function updateIssueTitleController(req: Request, res: Response){
+    const workspaceId = requireWorkspaceId(req, res);
+    if (workspaceId === null) return;
+
     const id = Number(req.params.id) ;
     if(!Number.isInteger(id) || id <= 0){
         res.status(400).json({ message : "Issue ID must be a positive integer"})
@@ -64,7 +88,7 @@ export async function updateIssueTitleController(req: Request, res: Response){
         return;
     }
 
-    const updatedIssue = await updateIssueTitle(id, title.trim()) ;
+    const updatedIssue = await updateIssueTitle(id, title.trim(), workspaceId) ;
     if(updatedIssue === null){
         res.status(404).json({ message : "Issue not found"});
         return ;
@@ -73,6 +97,9 @@ export async function updateIssueTitleController(req: Request, res: Response){
 }
 
 export async function updateIssueAssigneeController(req: Request, res: Response) {
+    const workspaceId = requireWorkspaceId(req, res);
+    if (workspaceId === null) return;
+
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
         res.status(400).json({ message: "Issue ID must be a positive integer" });
@@ -88,15 +115,15 @@ export async function updateIssueAssigneeController(req: Request, res: Response)
         return;
     }
 
-    const result = await updateIssueAssignee(id, assigneeId);
+    const result = await updateIssueAssignee(id, assigneeId, workspaceId);
 
     if (result.kind === "issue_not_found") {
         res.status(404).json({ message: "Issue not found" });
         return;
     }
 
-    if (result.kind === "user_not_found") {
-        res.status(404).json({ message: "Assignee not found" });
+    if (result.kind === "assignee_not_member") {
+        res.status(400).json({ message: "Assignee must be a workspace member" });
         return;
     }
 
@@ -104,6 +131,9 @@ export async function updateIssueAssigneeController(req: Request, res: Response)
 }
 
 export async function deleteIssueController(req: Request, res: Response){
+    const workspaceId = requireWorkspaceId(req, res);
+    if (workspaceId === null) return;
+
     const id = Number(req.params.id) ;
 
     if(!Number.isInteger(id) || id <= 0){
@@ -111,7 +141,7 @@ export async function deleteIssueController(req: Request, res: Response){
         return;
     }
 
-    const issue = await deleteIssue(id) ;
+    const issue = await deleteIssue(id, workspaceId) ;
     if(issue === null){
         res.status(404).json({ message : "Issue not found"});
         return ;
