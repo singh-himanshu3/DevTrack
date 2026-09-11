@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { getMyIssues } from "../services/issuesApi";
 import type { Issue } from "../types/issues";
@@ -56,6 +57,7 @@ function MyIssuesPage() {
         {issues.map((issue) => (
           <li key={issue.id}>
             <h3>{issue.title}</h3>
+            <Link to={`/?projectId=${issue.projectId}`}>{issue.project.name}</Link>
             <p>Created At: {new Date(issue.createdAt).toLocaleString()}</p>
           </li>
         ))}

@@ -5,6 +5,8 @@ const issueSelect = {
     title: true,
     createdAt: true,
     workspaceId: true,
+    projectId: true,
+    project: { select: { id: true, name: true } },
     assigneeId: true,
     assignee: {
         select: {
@@ -15,16 +17,16 @@ const issueSelect = {
     },
 } as const;
 
-export async function createIssue(title: string, workspaceId: number) {
+export async function createIssue(title: string, workspaceId: number, projectId: number) {
     return prisma.issue.create({
-        data: { title, workspaceId },
+        data: { title, workspaceId, projectId },
         select: issueSelect,
     });
 }
 
-export async function getIssues(workspaceId: number) {
+export async function getIssues(workspaceId: number, projectId?: number) {
     return prisma.issue.findMany({
-        where: { workspaceId },
+        where: { workspaceId, ...(projectId === undefined ? {} : { projectId }) },
         orderBy: { createdAt: "desc" },
         select: issueSelect,
     });
@@ -106,4 +108,8 @@ export async function deleteIssue(id: number, workspaceId: number) {
     return prisma.issue.delete({
         where: { id },
     });
+}
+
+export async function updateIssueProject(id: number, projectId: number, workspaceId: number) {
+    return prisma.issue.update({ where: { id, workspaceId }, data: { projectId }, select: issueSelect });
 }

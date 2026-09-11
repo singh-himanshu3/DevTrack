@@ -2,6 +2,16 @@ import type { NextFunction, Request, Response } from "express";
 import { parsePositiveInteger } from "../lib/validation.js";
 import { getWorkspaceMembership } from "../services/workspaces.service.js";
 
+// Runs after requireAuth and requireWorkspaceMember.
+export async function requireWorkspaceOwner(req: Request, res: Response, next: NextFunction) {
+    const member = await getWorkspaceMembership(req.workspaceId!, req.userId!);
+    if (member?.role !== "OWNER") {
+        res.status(403).json({ message: "Only workspace owners can manage projects" });
+        return;
+    }
+    next();
+}
+
 export async function requireWorkspaceMember(
     req: Request,
     res: Response,

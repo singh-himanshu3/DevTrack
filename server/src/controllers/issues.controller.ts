@@ -1,5 +1,8 @@
+import { getProjectById } from "../services/projects.service.js";
+import { parsePositiveInteger } from "../lib/validation.js";
 import type { Request, Response } from "express";
 import {
+    updateIssueProject,
     createIssue,
     deleteIssue,
     getIssueById,
@@ -22,13 +25,18 @@ export async function createIssueController(req: Request, res: Response){
     const workspaceId = requireWorkspaceId(req, res);
     if (workspaceId === null) return;
 
-    const {title} = req.body;
+    const {title} = req.body ?? {};
     if(typeof title !== "string" || title.trim() === ""){
         res.status(400).json({ message: "Title is required" });
         return;
     }
 
-    const issue = await createIssue(title.trim(), workspaceId) ;
+    const projectId = parsePositiveInteger(req.body?.projectId);
+    if (projectId === null) { res.status(400).json({ message: "A valid projectId is required" }); return; }
+    if (!await getProjectById(projectId, workspaceId)) {
+        res.status(404).json({ message: "Project not found" }); return;
+    }
+    const issue = await createIssue(title.trim(), workspaceId, projectId);
     res.status(201).json(issue);
 }
 
@@ -36,7 +44,12 @@ export async function getIssuesController(req: Request, res: Response){
     const workspaceId = requireWorkspaceId(req, res);
     if (workspaceId === null) return;
 
-    const issues = await getIssues(workspaceId);
+    const projectId = req.query.projectId === undefined ? undefined : parsePositiveInteger(req.query.projectId);
+    if (projectId === null) { res.status(400).json({ message: "A valid projectId is required" }); return; }
+    if (projectId !== undefined && !await getProjectById(projectId, workspaceId)) {
+        res.status(404).json({ message: "Project not found" }); return;
+    }
+    const issues = await getIssues(workspaceId, projectId);
     res.status(200).json(issues);
 }
 
@@ -82,7 +95,7 @@ export async function updateIssueTitleController(req: Request, res: Response){
         return;
     }
 
-    const {title} = req.body; 
+    const {title} = req.body ?? {};
     if(typeof title !== "string" || title.trim() === ""){
         res.status(400).json({ message: "Title is required" });
         return;
@@ -147,4 +160,16 @@ export async function deleteIssueController(req: Request, res: Response){
         return ;
     }
     res.status(204).send();
+}
+
+export async function updateIssueProjectController(req: Request, res: Response) {
+    const workspaceId = requireWorkspaceId(req, res);
+    if (workspaceId === null) return;
+    const id = parsePositiveInteger(req.params.id);
+    const projectId = parsePositiveInteger(req.body?.projectId);
+    if (id === null || projectId === null) { res.status(400).json({ message: "Valid issue and project IDs are required" }); return; }
+    if (!await getProjectById(projectId, workspaceId)) {
+        res.status(404).json({ message: "Project not found" }); return;
+    }
+    res.json(await updateIssueProject(id, projectId, workspaceId));
 }

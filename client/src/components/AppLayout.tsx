@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Link, Outlet } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { logout } from "../services/authApi";
 
 function AppLayout() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, setUser } = useAuth();
   const {
     workspaces,
@@ -44,7 +46,10 @@ function AppLayout() {
           <select
             id="current-workspace"
             value={currentWorkspace?.id ?? ""}
-            onChange={(event) => selectWorkspace(Number(event.target.value))}
+            onChange={(event) => {
+              selectWorkspace(Number(event.target.value));
+              if (location.pathname === "/") void navigate("/");
+            }}
             disabled={workspaces.length === 0}
           >
             {workspaces.length === 0 && <option value="">No workspace</option>}
@@ -60,6 +65,7 @@ function AppLayout() {
           <Link to="/">All Issues</Link>{" "}
           <Link to="/my-issues">My Issues</Link>{" "}
           <Link to="/workspaces">Workspaces</Link>
+          {" "}<Link to="/projects">Projects</Link>
         </nav>
         <button
           type="button"
@@ -71,7 +77,7 @@ function AppLayout() {
         {logoutError && <p>{logoutError}</p>}
       </header>
       <main>
-        <Outlet />
+        <Outlet key={currentWorkspace?.id ?? "none"} />
       </main>
     </>
   );

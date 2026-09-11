@@ -6,6 +6,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./components/AppLayout";
 import MyIssuesPage from "./pages/MyIssuesPage";
 import WorkspacesPage from "./pages/WorkspacesPage";
+import ProjectsPage from "./pages/ProjectsPage";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/" element={<IssuesPage />} />
           <Route path="/my-issues" element={<MyIssuesPage />} />
           <Route path="/workspaces" element={<WorkspacesPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
         </Route>
       </Route>
     </Routes>

@@ -1,5 +1,6 @@
 import {Router} from "express";
 import {
+    updateIssueProjectController,
     createIssueController,
     deleteIssueController,
     getIssueByIdController,
@@ -15,6 +16,7 @@ issuesRouter.get("/", getIssuesController);
 issuesRouter.get("/mine", getMyIssuesController);
 issuesRouter.get("/:id", getIssueByIdController);
 issuesRouter.post("/", createIssueController);
+issuesRouter.patch("/:id/project", updateIssueProjectController);
 issuesRouter.patch("/:id/assignee", updateIssueAssigneeController);
 issuesRouter.patch("/:id", updateIssueTitleController);
 issuesRouter.delete("/:id", deleteIssueController);
