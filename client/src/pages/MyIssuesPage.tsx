@@ -56,7 +56,7 @@ function MyIssuesPage() {
       <ul>
         {issues.map((issue) => (
           <li key={issue.id}>
-            <h3>{issue.title}</h3>
+            <h3><Link to={`/projects/${issue.projectId}/issues/${issue.id}`}>{issue.title}</Link></h3>
             <Link to={`/?projectId=${issue.projectId}`}>{issue.project.name}</Link>
             <p>Created At: {new Date(issue.createdAt).toLocaleString()}</p>
           </li>

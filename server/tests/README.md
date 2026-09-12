@@ -1,4 +1,4 @@
-# Milestone 6 validation
+# Milestones 6–7 validation
 
 Run from `server` with PostgreSQL available and `DATABASE_URL` / `JWT_SECRET`
 configured (the existing `.env` is loaded automatically):
@@ -32,3 +32,31 @@ Frontend checks: run `npm run build` and `npm run lint` from `client`.
 Browser smoke workflow: sign in, create two projects, open a project, create and
 assign an issue, move it to the other project, and verify its new project in
 My Issues. Switching workspace clears the project filter and page state.
+
+Milestone 7 adds `collaboration.test.ts`: author-only comment edits/deletes,
+membership revocation, wrong-issue/project/workspace rejection, input validation,
+chronological comments, safe author/actor projections, atomic activity recording,
+no-op edits, concurrent title edits, project moves, and cascade cleanup. Migration
+checks preserve old issue fields and default status/priority to `BACKLOG`/`NONE`.
+
+New collaboration endpoints require both `workspaceId` and `projectId` in the query:
+
+- `GET/POST /api/issues/:id/comments`
+- `PATCH/DELETE /api/issues/:id/comments/:commentId`
+- `GET /api/issues/:id/activity`
+- `PATCH /api/issues/:id/workflow` with `status` and/or `priority`
+
+Comments accept trimmed plain text of 1–5000 characters. A non-author receives
+404 for an edit/delete, including workspace owners. Activity is read-only and
+records issue creation, title, assignee, status, priority, and project changes in
+the same transaction as the change. Older issues do not receive invented history.
+Comments and history follow their issue when it moves to another project.
+
+Basic status/priority fields are introduced in Milestone 7 to make the roadmap's
+activity events functional. Search/filtering and the Kanban board remain in
+Milestones 8 and 9. Status values are `BACKLOG`, `TODO`, `IN_PROGRESS`, `DONE`;
+priority values are `NONE`, `LOW`, `MEDIUM`, `HIGH`, `URGENT`.
+
+Browser smoke workflow: open an issue link, post/edit/delete a comment, change
+title/assignee/status/priority, and verify activity after refresh. Check that
+another member can comment but cannot edit/delete the author's comment.

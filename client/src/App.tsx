@@ -7,6 +7,7 @@ import AppLayout from "./components/AppLayout";
 import MyIssuesPage from "./pages/MyIssuesPage";
 import WorkspacesPage from "./pages/WorkspacesPage";
 import ProjectsPage from "./pages/ProjectsPage";
+import IssueDetailsPage from "./pages/IssueDetailsPage";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/my-issues" element={<MyIssuesPage />} />
           <Route path="/workspaces" element={<WorkspacesPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:projectId/issues/:issueId" element={<IssueDetailsPage />} />
         </Route>
       </Route>
     </Routes>

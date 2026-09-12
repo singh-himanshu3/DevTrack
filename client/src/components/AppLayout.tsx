@@ -48,7 +48,7 @@ function AppLayout() {
             value={currentWorkspace?.id ?? ""}
             onChange={(event) => {
               selectWorkspace(Number(event.target.value));
-              if (location.pathname === "/") void navigate("/");
+              if (location.pathname === "/" || location.pathname.startsWith("/projects/")) void navigate("/");
             }}
             disabled={workspaces.length === 0}
           >

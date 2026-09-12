@@ -1,6 +1,8 @@
 import { getProjectById } from "../services/projects.service.js";
 import { parsePositiveInteger } from "../lib/validation.js";
 import type { Request, Response } from "express";
+import { IssuePriority, IssueStatus } from "../generated/prisma/client.js";
+import type { IssueScope } from "../services/issue-scope.service.js";
 import {
     updateIssueProject,
     createIssue,
@@ -10,7 +12,18 @@ import {
     getMyIssues,
     updateIssueAssignee,
     updateIssueTitle,
+    updateIssueWorkflow,
 } from "../services/issues.service.js";
+
+function scopeFrom(req: Request, res: Response): IssueScope | null {
+    const id = parsePositiveInteger(req.params.id);
+    const projectId = req.query.projectId === undefined ? undefined : parsePositiveInteger(req.query.projectId);
+    if (id === null || projectId === null || req.workspaceId === undefined) {
+        res.status(400).json({ message: "Valid issue, workspace and project IDs are required" });
+        return null;
+    }
+    return { id, workspaceId: req.workspaceId, ...(projectId === undefined ? {} : { projectId }) };
+}
 
 function requireWorkspaceId(req: Request, res: Response): number | null {
     if (req.workspaceId === undefined) {
@@ -36,7 +49,7 @@ export async function createIssueController(req: Request, res: Response){
     if (!await getProjectById(projectId, workspaceId)) {
         res.status(404).json({ message: "Project not found" }); return;
     }
-    const issue = await createIssue(title.trim(), workspaceId, projectId);
+    const issue = await createIssue(title.trim(), workspaceId, projectId, req.userId!);
     res.status(201).json(issue);
 }
 
@@ -77,7 +90,9 @@ export async function getIssueByIdController(req: Request, res: Response){
         return;
     }
 
-    const issue = await getIssueById(id, workspaceId) ;
+    const scope = scopeFrom(req, res);
+    if (scope === null) return;
+    const issue = await getIssueById(id, workspaceId, scope.projectId);
     if(issue === null){
         res.status(404).json({ message : "Issue not found"});
         return ;
@@ -101,7 +116,9 @@ export async function updateIssueTitleController(req: Request, res: Response){
         return;
     }
 
-    const updatedIssue = await updateIssueTitle(id, title.trim(), workspaceId) ;
+    const scope = scopeFrom(req, res);
+    if (scope === null) return;
+    const updatedIssue = await updateIssueTitle(scope, title.trim(), req.userId!);
     if(updatedIssue === null){
         res.status(404).json({ message : "Issue not found"});
         return ;
@@ -119,16 +136,18 @@ export async function updateIssueAssigneeController(req: Request, res: Response)
         return;
     }
 
-    const { assigneeId } = req.body;
+    const { assigneeId } = req.body ?? {};
     const isValidAssignee = assigneeId === null ||
-        (typeof assigneeId === "number" && Number.isInteger(assigneeId) && assigneeId > 0);
+        (typeof assigneeId === "number" && parsePositiveInteger(assigneeId) !== null);
 
     if (!isValidAssignee) {
         res.status(400).json({ message: "Assignee ID must be a positive integer or null" });
         return;
     }
 
-    const result = await updateIssueAssignee(id, assigneeId, workspaceId);
+    const scope = scopeFrom(req, res);
+    if (scope === null) return;
+    const result = await updateIssueAssignee(scope, assigneeId, req.userId!);
 
     if (result.kind === "issue_not_found") {
         res.status(404).json({ message: "Issue not found" });
@@ -154,7 +173,9 @@ export async function deleteIssueController(req: Request, res: Response){
         return;
     }
 
-    const issue = await deleteIssue(id, workspaceId) ;
+    const scope = scopeFrom(req, res);
+    if (scope === null) return;
+    const issue = await deleteIssue(scope);
     if(issue === null){
         res.status(404).json({ message : "Issue not found"});
         return ;
@@ -171,5 +192,36 @@ export async function updateIssueProjectController(req: Request, res: Response) 
     if (!await getProjectById(projectId, workspaceId)) {
         res.status(404).json({ message: "Project not found" }); return;
     }
-    res.json(await updateIssueProject(id, projectId, workspaceId));
+    const scope = scopeFrom(req, res);
+    if (scope === null) return;
+    const issue = await updateIssueProject(scope, projectId, req.userId!);
+    if (issue === null) { res.status(404).json({ message: "Issue not found" }); return; }
+    res.json(issue);
+}
+
+export async function updateIssueWorkflowController(req: Request, res: Response) {
+    const body: unknown = req.body;
+    if (body === null || typeof body !== "object" || Array.isArray(body)) {
+        res.status(400).json({ message: "A status or priority is required" }); return;
+    }
+    const values = body as Record<string, unknown>;
+    if (Object.keys(values).length === 0 || Object.keys(values).some(key => key !== "status" && key !== "priority")) {
+        res.status(400).json({ message: "Only status and priority can be changed here" }); return;
+    }
+    const change: { status?: IssueStatus; priority?: IssuePriority } = {};
+    if ("status" in values) {
+        if (typeof values.status !== "string" || !Object.values(IssueStatus).includes(values.status as IssueStatus)) {
+            res.status(400).json({ message: "Invalid issue status" }); return;
+        }
+        change.status = values.status as IssueStatus;
+    }
+    if ("priority" in values) {
+        if (typeof values.priority !== "string" || !Object.values(IssuePriority).includes(values.priority as IssuePriority)) {
+            res.status(400).json({ message: "Invalid issue priority" }); return;
+        }
+        change.priority = values.priority as IssuePriority;
+    }
+    const issue = await updateIssueWorkflow(req.issueScope!, req.userId!, change);
+    if (issue === null) { res.status(404).json({ message: "Issue not found in this project" }); return; }
+    res.json(issue);
 }

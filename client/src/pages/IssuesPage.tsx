@@ -285,7 +285,7 @@ function IssuesContent({ projectFilter, onFilter }: { projectFilter: string; onF
               </form>
             ) : (
               <>
-                <h3>{issue.title}</h3>
+                <h3><Link to={`/projects/${issue.projectId}/issues/${issue.id}`}>{issue.title}</Link></h3>
                 <button type="button" onClick={() => beginEditing(issue)}>
                   Edit
                 </button>
