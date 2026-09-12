@@ -1,69 +1,33 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useWorkspace } from "../context/WorkspaceContext";
+import { useAuth } from "../context/AuthContext";
 import { getMyIssues } from "../services/issuesApi";
 import type { Issue } from "../types/issues";
+import { EmptyState, ErrorNotice, IssueStats, IssueTable, LoadingState, PageHeader } from "../components/ui";
 
-function MyIssuesPage() {
+export default function MyIssuesPage() {
   const { currentWorkspace } = useWorkspace();
-  const currentWorkspaceId = currentWorkspace?.id;
+  const { user } = useAuth();
+  const workspaceId = currentWorkspace?.id;
   const [issues, setIssues] = useState<Issue[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    if (currentWorkspaceId === undefined) return;
-    const workspaceId = currentWorkspaceId;
-
-    let isCancelled = false;
-
-    async function fetchMyIssues() {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const issueData = await getMyIssues(workspaceId);
-        if (!isCancelled) setIssues(issueData);
-      } catch (caughtError) {
-        if (!isCancelled) {
-          setError(
-            caughtError instanceof Error
-              ? caughtError.message
-              : "Failed to fetch your issues",
-          );
-        }
-      } finally {
-        if (!isCancelled) setIsLoading(false);
-      }
+    if (workspaceId === undefined) return;
+    let cancelled = false;
+    async function load() {
+      setLoading(true); setError(null);
+      try { const data = await getMyIssues(workspaceId!); if (!cancelled) setIssues(data); }
+      catch (e) { if (!cancelled) setError(e instanceof Error ? e.message : "Unable to load your issues"); }
+      finally { if (!cancelled) setLoading(false); }
     }
-
-    void fetchMyIssues();
-    return () => {
-      isCancelled = true;
-    };
-  }, [currentWorkspaceId]);
-
-  if (currentWorkspace === null) {
-    return <p>Create or select a workspace to view your issues.</p>;
-  }
-  if (isLoading) return <p>Loading your issues...</p>;
-
-  return (
-    <section>
-      <h2>My Issues</h2>
-      {error && <p>{error}</p>}
-      {!error && issues.length === 0 && <p>No issues are assigned to you.</p>}
-      <ul>
-        {issues.map((issue) => (
-          <li key={issue.id}>
-            <h3><Link to={`/projects/${issue.projectId}/issues/${issue.id}`}>{issue.title}</Link></h3>
-            <Link to={`/?projectId=${issue.projectId}`}>{issue.project.name}</Link>
-            <p>Created At: {new Date(issue.createdAt).toLocaleString()}</p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
+    void load(); return () => { cancelled = true; };
+  }, [workspaceId, attempt]);
+  return <section><PageHeader eyebrow="YOUR FOCUS" title="My issues" description={`${user?.name?.split(" ")[0] ?? "Here's your work"}, these are the issues assigned to you in this workspace.`} />
+    {!currentWorkspace ? <EmptyState title="Choose your workspace"><p>Your assigned issues will appear here.</p><Link className="button-primary" to="/workspaces">Go to workspace settings</Link></EmptyState> : loading ? <LoadingState text="Finding your issues…" /> : error ? <ErrorNotice>{error} <button onClick={() => setAttempt(value => value + 1)}>Retry</button></ErrorNotice> : <>
+      <IssueStats issues={issues} /><section className="panel"><div className="panel-toolbar"><div><h2>Assigned to you <span className="count-badge">{issues.length}</span></h2><p>Open an issue to update progress or join the conversation.</p></div></div>{issues.length ? <IssueTable issues={issues} /> : <EmptyState title="You're all clear"><p>No issues are assigned to you yet. Open an issue and choose yourself as its assignee.</p><Link className="button-primary" to="/">Browse all issues</Link></EmptyState>}</section>
+    </>}
+  </section>;
 }
-
-export default MyIssuesPage;

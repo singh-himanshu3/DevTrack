@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { register } from "../services/authApi";
+import AuthLayout from "../components/AuthLayout";
 
 const RegisterPage = () => {
     const [name, setName] = useState<string>("") ;
@@ -40,17 +41,21 @@ const RegisterPage = () => {
 
     }
     return (
-        <>
+        <AuthLayout>
             <form onSubmit={handleSubmit}>
                 <div>
-                    <h1>Register to DevTrack</h1>
-                    <div>
+                    <p className="eyebrow">LET'S BUILD SOMETHING</p>
+                    <h1>Your work, organized.</h1>
+                    <p className="auth-description">Create an account and give your next project a home.</p>
+                    <div className="auth-fields">
                         <label htmlFor="name">Name</label>
                         <input
                             id="name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             autoComplete="name"
+                            placeholder="Your full name"
+                            required
                         />
                         <label htmlFor="email">Email</label>
                         <input
@@ -59,6 +64,8 @@ const RegisterPage = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             autoComplete="email"
+                            placeholder="you@company.com"
+                            required
                         />
                         <label htmlFor="password">Password</label>
                         <input
@@ -67,23 +74,28 @@ const RegisterPage = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             autoComplete="new-password"
+                            placeholder="Create a password"
+                            minLength={8}
+                            required
+                            aria-describedby="password-help"
                         />
+                        <p id="password-help" className="auth-password-help">Use at least 8 characters.</p>
                     </div>
                     <div>
-                        <button type="submit" disabled={isSubmitting || name.trim() === "" ||
+                        <button className="button-primary" type="submit" disabled={isSubmitting || name.trim() === "" ||
                             email.trim() === "" || password === ""
                         }>
                             {isSubmitting ? "Creating account..." : "Create Account"}
                         </button>
                     </div>
-                    {error && <p>{error}</p>}
-                    <p>
-                        Already have an account? <Link to="/login">Login here</Link>
+                    {error && <p className="error-notice" role="alert">{error}</p>}
+                    <p className="auth-footer">
+                        Already have an account? <Link to="/login">Sign in</Link>
                     </p>
 
                 </div>
             </form>
-        </>
+        </AuthLayout>
     )
 }
 

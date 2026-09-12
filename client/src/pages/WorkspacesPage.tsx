@@ -1,4 +1,5 @@
 import { useEffect, useState, type SubmitEvent } from "react";
+import { Avatar, Icon, PageHeader } from "../components/ui";
 import { useWorkspace } from "../context/WorkspaceContext";
 import {
   addWorkspaceMember,
@@ -132,41 +133,46 @@ function WorkspacesPage() {
   }
 
   return (
-    <section>
-      <h2>Workspaces</h2>
+    <section className="workspace-settings-page">
+      <PageHeader eyebrow="YOUR TEAM'S HOME" title="Workspace settings" description="A workspace contains your projects, issues, and teammates. Switch between them here or in the sidebar." />
 
-      <form onSubmit={handleCreateWorkspace}>
+      <form className="panel inline-form create-panel" onSubmit={handleCreateWorkspace}>
+        <div className="field grow">
         <label htmlFor="workspace-name">New workspace name</label>
         <input
           id="workspace-name"
+          placeholder="e.g. Product & engineering"
           value={workspaceName}
           maxLength={80}
           onChange={(event) => setWorkspaceName(event.target.value)}
         />
+        </div>
         <button
+          className="button-primary"
           type="submit"
           disabled={isCreating || workspaceName.trim() === ""}
         >
-          {isCreating ? "Creating..." : "Create workspace"}
+          <Icon name="plus" />{isCreating ? "Creating..." : "Create workspace"}
         </button>
       </form>
 
-      {error && <p>{error}</p>}
+      {error && <p className="error-notice" role="alert">{error}</p>}
 
       <h3>Your workspaces</h3>
       {workspaces.length === 0 ? (
         <p>You do not belong to a workspace yet.</p>
       ) : (
-        <ul>
+        <ul className="workspace-grid">
           {workspaces.map((workspace) => (
-            <li key={workspace.id}>
+            <li key={workspace.id} className={workspace.id === currentWorkspace?.id ? "selected-workspace" : ""}>
               <button
                 type="button"
                 onClick={() => selectWorkspace(workspace.id)}
                 disabled={workspace.id === currentWorkspace?.id}
               >
-                {workspace.name} · {workspace.role} · {workspace.memberCount}{" "}
-                {workspace.memberCount === 1 ? "member" : "members"}
+                <span className="project-symbol"><Icon name="users" /></span>
+                <strong>{workspace.name}</strong><span>{workspace.memberCount} {workspace.memberCount === 1 ? "member" : "members"} · {workspace.role === "OWNER" ? "Owner" : "Member"}</span>
+                <span className="workspace-select-label">{workspace.id === currentWorkspace?.id ? "Current workspace" : "Switch workspace →"}</span>
               </button>
             </li>
           ))}
@@ -174,43 +180,49 @@ function WorkspacesPage() {
       )}
 
       {currentWorkspace && (
-        <section>
+        <section className="panel members-panel">
           <h3>{currentWorkspace.name} members</h3>
 
           {currentWorkspace.role === "OWNER" && (
             <>
-              <form onSubmit={handleAddMember}>
+              <p className="muted">Add a teammate using the email they registered with on DevTrack.</p>
+              <form className="inline-form" onSubmit={handleAddMember}>
+                <div className="field grow">
                 <label htmlFor="member-email">Registered user email</label>
                 <input
                   id="member-email"
                   type="email"
+                  placeholder="teammate@company.com"
                   value={memberEmail}
                   onChange={(event) => setMemberEmail(event.target.value)}
                 />
+                </div>
                 <button
+                  className="button-primary"
                   type="submit"
                   disabled={isAddingMember || memberEmail.trim() === ""}
                 >
                   {isAddingMember ? "Adding..." : "Add member"}
                 </button>
               </form>
-              <button
+              <details className="danger-zone"><summary>Delete workspace</summary><p>This permanently deletes this workspace and its projects, issues, comments, and history.</p><button
+                className="button-danger"
                 type="button"
                 onClick={() => void handleDeleteWorkspace()}
                 disabled={isDeleting}
               >
                 {isDeleting ? "Deleting..." : "Delete workspace"}
-              </button>
+              </button></details>
             </>
           )}
 
           {isLoadingMembers ? (
             <p>Loading members...</p>
           ) : (
-            <ul>
+            <ul className="member-list">
               {members.map((member) => (
                 <li key={member.userId}>
-                  {member.user.name} ({member.user.email}) · {member.role}
+                  <Avatar name={member.user.name} /><div><strong>{member.user.name}</strong><span>{member.user.email}</span></div><span className="role-badge">{member.role === "OWNER" ? "Owner" : "Member"}</span>
                 </li>
               ))}
             </ul>

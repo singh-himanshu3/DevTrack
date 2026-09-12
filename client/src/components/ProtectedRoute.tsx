@@ -1,15 +1,16 @@
 import { Navigate, Outlet } from "react-router";
 import { useAuth } from "../context/AuthContext";
+import { LoadingState, ErrorNotice } from "./ui";
 
 function ProtectedRoute(){
     const {user, isAuthLoading, authError} = useAuth() ;
 
     if(isAuthLoading){
-        return <p>Checking Session...</p> ; 
+        return <LoadingState text="Checking your session…" />;
     }
 
     if(authError && user === null){
-        return <p>{authError}</p> ;
+        return <ErrorNotice>{authError} <button onClick={() => window.location.reload()}>Retry</button></ErrorNotice>;
     }
 
     if(user === null){

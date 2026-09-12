@@ -21,5 +21,7 @@ export const createComment = (scope: IssueScope, content: string) => request<Iss
 export const editComment = (scope: IssueScope, id: number, content: string) => request<IssueComment>(scope, `/comments/${id}`, "PATCH", { content });
 export const deleteComment = (scope: IssueScope, id: number) => request<void>(scope, `/comments/${id}`, "DELETE");
 export const changeTitle = (scope: IssueScope, title: string) => request<Issue>(scope, "", "PATCH", { title });
+export const moveIssue = (scope: IssueScope, projectId: number) => request<Issue>(scope, "/project", "PATCH", { projectId });
+export const removeIssue = (scope: IssueScope) => request<void>(scope, "", "DELETE");
 export const changeAssignee = (scope: IssueScope, assigneeId: number | null) => request<Issue>(scope, "/assignee", "PATCH", { assigneeId });
 export const changeWorkflow = (scope: IssueScope, change: { status?: IssueStatus; priority?: IssuePriority }) => request<Issue>(scope, "/workflow", "PATCH", change);

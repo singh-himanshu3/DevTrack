@@ -2,6 +2,7 @@ import { useState, type SubmitEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { login } from "../services/authApi";
 import { useAuth } from "../context/AuthContext";
+import AuthLayout from "../components/AuthLayout";
 
 const LoginPage = () => {
     const [email, setEmail] = useState<string>("") ;
@@ -39,11 +40,13 @@ const LoginPage = () => {
 
     }
     return (
-        <>
+        <AuthLayout>
             <form onSubmit={handleSubmit}>
                 <div>
-                    <h1>Log in to DevTrack</h1>
-                    <div>
+                    <p className="eyebrow">WELCOME TO DEVTRACK</p>
+                    <h1>Welcome back.</h1>
+                    <p className="auth-description">Sign in to pick up where your team left off.</p>
+                    <div className="auth-fields">
                         <label htmlFor="email">Email</label>
                         <input
                             type="email"
@@ -51,6 +54,8 @@ const LoginPage = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             autoComplete="email"
+                            placeholder="you@company.com"
+                            required
                         />
                         <label htmlFor="password">Password</label>
                         <input
@@ -59,23 +64,25 @@ const LoginPage = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             autoComplete="current-password"
+                            placeholder="Enter your password"
+                            required
                         />
                     </div>
                     <div>
-                        <button type="submit" disabled={isSubmitting ||
+                        <button className="button-primary" type="submit" disabled={isSubmitting ||
                             email.trim() === "" || password === ""
                         }>
-                            {isSubmitting ? "Logging in..." : "Login"}
+                            {isSubmitting ? "Signing in…" : "Sign in"}
                         </button>
                     </div>
-                    {error && <p>{error}</p>}
-                    <p>
+                    {error && <p className="error-notice" role="alert">{error}</p>}
+                    <p className="auth-footer">
                         Don't have an account? <Link to="/register">Create an account</Link>
                     </p>
 
                 </div>
             </form>
-        </>
+        </AuthLayout>
     )
 }
 
