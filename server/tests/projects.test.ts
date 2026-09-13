@@ -95,9 +95,9 @@ test("project and issue API: roles, validation, filtering, moves and tenant isol
         assert.equal(issue.project.name, "Renamed");
         await request(issues(a, `/${issue.id}/assignee`), 200, owner, "PATCH", { assigneeId: member });
         await request(issues(a, `/${issue.id}/assignee`), 400, owner, "PATCH", { assigneeId: outsider });
-        assert.equal((await request(issues(a, "/mine"), 200, member))[0].projectId, p.id);
-        assert.equal((await request(issues() + `&projectId=${p.id}`, 200, member)).length, 1);
-        assert.equal((await request(issues() + `&projectId=${q.id}`, 200, member)).length, 0);
+        assert.equal((await request(issues(a, "/mine"), 200, member)).items[0].projectId, p.id);
+        assert.equal((await request(issues() + `&projectId=${p.id}`, 200, member)).items.length, 1);
+        assert.equal((await request(issues() + `&projectId=${q.id}`, 200, member)).items.length, 0);
         await request(issues() + `&projectId=${foreign.id}`, 404, owner);
         await request(issues() + "&projectId=0", 400, owner);
         await request(issues() + `&projectId=${p.id}`, 403, outsider);
@@ -111,7 +111,7 @@ test("project and issue API: roles, validation, filtering, moves and tenant isol
         await assert.rejects(prisma.issue.update({ where: { id: issue.id }, data: { projectId: foreign.id } }), { code: "P2003" });
         const moved = await request(issues(a, `/${issue.id}/project`), 200, member, "PATCH", { projectId: q.id });
         assert.equal(moved.assigneeId, member);
-        assert.equal((await request(issues() + `&projectId=${p.id}`, 200, member)).length, 0);
+        assert.equal((await request(issues() + `&projectId=${p.id}`, 200, member)).items.length, 0);
         await request(projects(a, `/${p.id}`), 204, owner, "DELETE");
         await request(issues(a, `/${issue.id}`), 200, member, "PATCH", { title: "Updated" });
         await request(issues(a, `/${issue.id}`), 204, member, "DELETE");

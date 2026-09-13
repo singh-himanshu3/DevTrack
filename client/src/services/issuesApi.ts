@@ -5,28 +5,24 @@ function getWorkspaceIssueUrl(workspaceId: number, path = "") {
     return `${ISSUES_API_URL}${path}?workspaceId=${workspaceId}`;
 }
 
-export async function getIssues(workspaceId: number, projectId?: number) : Promise<Issue[]> {
-    const response = await fetch(getWorkspaceIssueUrl(workspaceId) + (projectId === undefined ? "" : `&projectId=${projectId}`),{
-        credentials: "include"
-    });
-    if(!response.ok) {
-        throw new Error("Failed to fetch issues");
-    }
-    const data = await response.json() ;
-    return data as Issue[] ;
-}
-
-export async function getMyIssues(workspaceId: number): Promise<Issue[]> {
-    const response = await fetch(getWorkspaceIssueUrl(workspaceId, "/mine"), {
-        credentials: "include",
-    });
-
+export interface IssuePage { items: Issue[]; page: number; limit: number; total: number; totalPages: number }
+export async function getIssues(workspaceId: number, query = '', mine = false): Promise<IssuePage> {
+    const params = new URLSearchParams(query);
+    params.set('workspaceId', String(workspaceId));
+    const response = await fetch(ISSUES_API_URL + (mine ? '/mine' : '') + '?' + params, { credentials: 'include' });
     if (!response.ok) {
-        throw new Error("Failed to fetch your issues");
+        const body = await response.json().catch(() => ({})) as { message?: string };
+        throw new Error(body.message ?? 'Unable to fetch issues');
     }
-
-    const data = await response.json();
-    return data as Issue[];
+    const data: unknown = await response.json();
+    if (!data || typeof data !== 'object' || !('items' in data) || !Array.isArray(data.items)
+        || !('total' in data) || !Number.isInteger(data.total)
+        || !('page' in data) || !Number.isInteger(data.page)
+        || !('limit' in data) || !Number.isInteger(data.limit)
+        || !('totalPages' in data) || !Number.isInteger(data.totalPages)) {
+        throw new Error('Unable to load the issue list. The server returned an unexpected response.');
+    }
+    return data as IssuePage;
 }
 
 export async function createIssue(title : string, workspaceId: number, projectId: number) : Promise<Issue> {

@@ -11,6 +11,7 @@ export interface Issue {
     status: IssueStatus;
     priority: IssuePriority;
   createdAt : string;
+  updatedAt: string;
   workspaceId: number;
   projectId: number;
   project: { id: number; name: string };

@@ -1,3 +1,4 @@
+import { parseIssueQuery } from "../lib/issue-query.js";
 import { getProjectById } from "../services/projects.service.js";
 import { parsePositiveInteger } from "../lib/validation.js";
 import type { Request, Response } from "express";
@@ -9,7 +10,6 @@ import {
     deleteIssue,
     getIssueById,
     getIssues,
-    getMyIssues,
     updateIssueAssignee,
     updateIssueTitle,
     updateIssueWorkflow,
@@ -53,31 +53,19 @@ export async function createIssueController(req: Request, res: Response){
     res.status(201).json(issue);
 }
 
-export async function getIssuesController(req: Request, res: Response){
+async function listIssues(req: Request, res: Response, mine = false) {
     const workspaceId = requireWorkspaceId(req, res);
     if (workspaceId === null) return;
-
-    const projectId = req.query.projectId === undefined ? undefined : parsePositiveInteger(req.query.projectId);
-    if (projectId === null) { res.status(400).json({ message: "A valid projectId is required" }); return; }
-    if (projectId !== undefined && !await getProjectById(projectId, workspaceId)) {
-        res.status(404).json({ message: "Project not found" }); return;
+    let query;
+    try { query = parseIssueQuery(req.query); }
+    catch (error) { res.status(400).json({ message: error instanceof Error ? error.message : 'Invalid issue query' }); return; }
+    if (query.projectId !== undefined && !await getProjectById(query.projectId, workspaceId)) {
+        res.status(404).json({ message: 'Project not found' }); return;
     }
-    const issues = await getIssues(workspaceId, projectId);
-    res.status(200).json(issues);
+    res.json(await getIssues(workspaceId, query, mine ? req.userId! : undefined));
 }
-
-export async function getMyIssuesController(req: Request, res: Response) {
-    if (req.userId === undefined) {
-        res.status(401).json({ message: "Authentication required" });
-        return;
-    }
-
-    const workspaceId = requireWorkspaceId(req, res);
-    if (workspaceId === null) return;
-
-    const issues = await getMyIssues(req.userId, workspaceId);
-    res.status(200).json(issues);
-}
+export async function getIssuesController(req: Request, res: Response) { await listIssues(req, res); }
+export async function getMyIssuesController(req: Request, res: Response) { await listIssues(req, res, true); }
 
 export async function getIssueByIdController(req: Request, res: Response){
     const workspaceId = requireWorkspaceId(req, res);

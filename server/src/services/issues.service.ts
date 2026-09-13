@@ -1,10 +1,11 @@
+import type { IssueQuery } from "../lib/issue-query.js";
 import { prisma } from "../lib/prisma.js";
 import type { ActivityType, IssuePriority, IssueStatus, Prisma } from "../generated/prisma/client.js";
 import { recordActivity } from "./activity.service.js";
 import { withIssueLock, type IssueScope } from "./issue-scope.service.js";
 
 const issueSelect = {
-    id: true, title: true, status: true, priority: true, createdAt: true,
+    id: true, title: true, status: true, priority: true, createdAt: true, updatedAt: true,
     workspaceId: true, projectId: true,
     project: { select: { id: true, name: true } },
     assigneeId: true,
@@ -19,18 +20,20 @@ export async function createIssue(title: string, workspaceId: number, projectId:
     });
 }
 
-export function getIssues(workspaceId: number, projectId?: number) {
-    return prisma.issue.findMany({
-        where: { workspaceId, ...(projectId === undefined ? {} : { projectId }) },
-        orderBy: { createdAt: "desc" }, select: issueSelect,
-    });
-}
-
-export function getMyIssues(userId: number, workspaceId: number) {
-    return prisma.issue.findMany({
-        where: { assigneeId: userId, workspaceId },
-        orderBy: { createdAt: "desc" }, select: issueSelect,
-    });
+export async function getIssues(workspaceId: number, query: IssueQuery, mine?: number) {
+    const { page, limit, sort, order, search, ...filters } = query;
+    const where: Prisma.IssueWhereInput = {
+        workspaceId, ...filters,
+        // Escape LIKE metacharacters: a title search is literal, not a wildcard expression.
+        ...(search ? { title: { contains: search.replace(/[\\%_]/g, '\\$&'), mode: 'insensitive' } } : {}),
+        ...(mine === undefined ? {} : { AND: [{ assigneeId: mine }] }),
+    };
+    return prisma.$transaction(async tx => {
+        const total = await tx.issue.count({ where });
+        const items = await tx.issue.findMany({ where, select: issueSelect,
+            orderBy: [{ [sort]: order }, { id: order }], skip: (page - 1) * limit, take: limit });
+        return { items, page, limit, total, totalPages: Math.ceil(total / limit) };
+    }, { isolationLevel: 'RepeatableRead' });
 }
 
 export function getIssueById(id: number, workspaceId: number, projectId?: number) {

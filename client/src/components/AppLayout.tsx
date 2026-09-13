@@ -25,7 +25,7 @@ export default function AppLayout() {
       <Link className="brand" to="/"><span className="brand-mark"><Icon name="check" /></span>DevTrack<span className="brand-dot">.</span></Link>
       <div className="workspace-picker"><label htmlFor="current-workspace">CURRENT WORKSPACE</label>
         <select id="current-workspace" value={currentWorkspace?.id ?? ""} disabled={isWorkspaceLoading || workspaces.length === 0}
-          onChange={event => { selectWorkspace(Number(event.target.value)); if (location.pathname === "/" || location.pathname.startsWith("/projects/")) void navigate("/"); }}>
+          onChange={event => { selectWorkspace(Number(event.target.value)); if (location.pathname === "/my-issues") void navigate("/my-issues"); else if (location.pathname === "/" || location.pathname.startsWith("/projects/")) void navigate("/"); }}>
           {workspaces.length === 0 && <option value="">{isWorkspaceLoading ? "Loading…" : "No workspace yet"}</option>}
           {workspaces.map(workspace => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}
         </select><span className="workspace-role">{currentWorkspace ? `${currentWorkspace.role === "OWNER" ? "Owner" : "Member"} access` : "Create a workspace to get started"}</span>

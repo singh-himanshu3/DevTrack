@@ -18,6 +18,7 @@ model Issue {
   status      IssueStatus   @default(BACKLOG)
   priority    IssuePriority @default(NONE)
   createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
   workspaceId Int
   workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   projectId   Int
@@ -27,6 +28,11 @@ model Issue {
   comments    Comment[]
   activities  Activity[]
 
+  @@index([workspaceId, updatedAt, id])
+  @@index([workspaceId, status, priority])
+  @@index([projectId, workspaceId, updatedAt, id])
+  @@index([workspaceId, assigneeId, updatedAt, id])
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([projectId, workspaceId, createdAt])
   @@index([assigneeId])
   @@index([workspaceId, createdAt])
